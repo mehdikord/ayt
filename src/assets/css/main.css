@@ -1,0 +1,17 @@
+body{
+    margin: 0 !important;
+    background-color: #F6F7F2 !important;
+}
+.header-color {
+    background-color: #D7DEBD!important;
+}
+.ayt-text-dark{
+    color: #929C6B!important;
+}
+.ayt-bg-dark{
+    background-color: #929C6B!important;
+}
+.ayt-spacer{
+    background: url("src/assets/images/template/spacer-bg.svg");
+    background-size: revert;
+}
