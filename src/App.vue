@@ -10,25 +10,28 @@ export default {
 </script>
 <template>
 <div class="flex justify-content-center bg-gray-100 min-h-screen">
-<!-- کانتینر مرکزی -->
 <div class="w-full shadow-2 flex flex-column" style="max-width: 480px; min-height: 100vh;">
 
-  <!-- هدر -->
   <header class="header-color pt-3 pb-2 pl-4 pr-4 border-bottom-1 text-center border-round-bottom-3xl">
     <template_header/>
   </header>
   <div class="text-center">
     <img src="@/assets/images/template/header-logo.svg" alt="Image"  style="margin-top: -80px;" width="80" />
   </div>
-  <!-- محتوای اصلی -->
   <main class="flex-1 p-3">
     <router-view />
   </main>
 
 
-  <!-- فوتر -->
-  <footer class="p-2 border-top-1 surface-border text-center text-sm">
-    © 2025 اپ من
+  <footer class="pt-4 pb-4 pl-3 pr-3 bg-black-alpha-90 border-round-top-3xl">
+    <div class="grid">
+      <div class="col-3 text-center">
+        
+      </div>
+      <div class="col-3 text-center">ad</div>
+      <div class="col-3 text-center">ad</div>
+      <div class="col-3 text-center">ad</div>
+    </div>
   </footer>
 
 </div>

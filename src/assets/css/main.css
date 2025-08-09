@@ -11,6 +11,12 @@ body{
 .ayt-bg-dark{
     background-color: #929C6B!important;
 }
+.ayt-text-light{
+    color: #D7DEBD!important;
+}
+.ayt-bg-light{
+    background-color: #D7DEBD!important;
+}
 .ayt-spacer{
     background: url("src/assets/images/template/spacer-bg.svg");
     background-size: revert;
