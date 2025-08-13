@@ -28,10 +28,15 @@ export default {
       <div class="col-3 text-center">
         <Image src="src/assets/images/template/menu/menu-menu.svg" width="32" />
         <div>
-          <strong >منو</strong>
+          <strong class="text-color-secondary">منو</strong>
         </div>
       </div>
-      <div class="col-3 text-center">ad</div>
+      <div class="col-3 text-center">
+        <Image src="src/assets/images/template/menu/menu-profile.svg" width="30" />
+        <div>
+          <strong class="text-color-secondary">پروفایل</strong>
+        </div>
+      </div>
       <div class="col-3 text-center">ad</div>
       <div class="col-3 text-center">ad</div>
     </div>
