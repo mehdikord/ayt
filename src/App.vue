@@ -23,10 +23,13 @@ export default {
   </main>
 
 
-  <footer class="pt-4 pb-4 pl-3 pr-3 bg-black-alpha-90 border-round-top-3xl">
+  <footer class="pt-3 pb-1 pl-3 pr-3 bg-black-alpha-90 border-round-top-3xl">
     <div class="grid">
       <div class="col-3 text-center">
-        
+        <Image src="src/assets/images/template/menu/menu-menu.svg" width="32" />
+        <div>
+          <strong >منو</strong>
+        </div>
       </div>
       <div class="col-3 text-center">ad</div>
       <div class="col-3 text-center">ad</div>
