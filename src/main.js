@@ -4,10 +4,11 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 import PrimeVue from 'primevue/config';
-import Aura from '@primeuix/themes/aura';
+import Lara from '@primeuix/themes/lara';
 import 'primeflex/primeflex.css'
 import './assets/css/main.css'
 import './assets/css/base.scss'
+import './assets/theme/aura-skeleton.css'
 
 
 
@@ -17,11 +18,7 @@ app.use(createPinia())
 app.use(router)
 app.use(PrimeVue, {
     theme: {
-        preset: Aura,
-        dark : false,
-        options: {
-            dark: false
-        }
+        preset: Lara,
     },
     ripple: true,
     locale: {

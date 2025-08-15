@@ -2,6 +2,13 @@ body{
     margin: 0 !important;
     background-color: #F6F7F2 !important;
 }
+a{
+    text-decoration: none !important;
+}
+.pattern-bg {
+    background: url("src/assets/images/template/pattern-bg.svg");
+    background-size: cover;
+}
 .header-color {
     background-color: #D7DEBD!important;
 }
@@ -17,7 +24,13 @@ body{
 .ayt-bg-light{
     background-color: #D7DEBD!important;
 }
+.ayt-border-light{
+    border-color: #D7DEBD!important;
+}
 .ayt-spacer{
     background: url("src/assets/images/template/spacer-bg.svg");
     background-size: revert;
 }
+
+
+
