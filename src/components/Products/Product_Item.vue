@@ -14,7 +14,7 @@ export default {
 <template>
   <div>
     <div class="text-black-alpha-90 pt-3 pb-3">
-      <div @click="prices_dialog = true" style="height: 280px;background-image:url('src/assets/images/template/product-shape.svg');background-size: 95%;background-position: center;background-repeat: no-repeat">
+      <div @click="prices_dialog = true" class="product-box">
         <div class="pr-3">
           <div class="ayt-bg-light ayt-text-dark text-center pt-1" style="width: 40px;height: 40px;border-radius: 50%;">
             <strong class="font-20">4.8</strong>
@@ -112,5 +112,7 @@ export default {
 </template>
 
 <style scoped>
-
+.product-box{
+  height: 280px;background-image:url('@/assets/images/template/product-shape.svg');background-size: 95%;background-position: center;background-repeat: no-repeat
+}
 </style>
