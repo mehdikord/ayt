@@ -79,7 +79,7 @@ export default {
 
 <style scoped>
 .profile{
-  background: url("src/assets/images/template/profile-bg.svg");
+  background: url("@/assets/images/template/profile-bg.svg");
   width: 100px;
   height: 103px;
 }
