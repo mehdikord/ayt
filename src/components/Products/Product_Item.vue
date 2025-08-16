@@ -21,7 +21,7 @@ export default {
           </div>
         </div>
         <div class="text-center pt-1">
-          <Image src="src/assets/images/template/espresso.svg" width="130" />
+          <img src="@/assets/images/template/espresso.svg" alt="product" width="130">
         </div>
         <div class="text-center mt-1">
           <strong class="font-22">کاپوچینو</strong>
@@ -39,7 +39,7 @@ export default {
     </div>
     <Dialog :closable="false" class="bg-white" v-model:visible="prices_dialog" modal style="width: 90% ;max-width: 450px;" :draggable="false" position="center">
       <div class="text-center">
-        <Image src="src/assets/images/template/espresso.svg" width="170" />
+        <img src="@/assets/images/template/espresso.svg" width="170" alt="product" />
       </div>
       <div class="mt-2">
         <strong class="text-black-alpha-90 font-24">کاپوچینو</strong>
