@@ -36,7 +36,7 @@ export default {
 <style scoped>
 .login-bg {
   height: 92vh;
-  background: url("src/assets/images/template/login-bg.svg");
+  background: url("@/assets/images/template/login-bg.svg");
   background-size: cover;
 }
 .logo-box{

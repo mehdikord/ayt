@@ -6,7 +6,7 @@ a{
     text-decoration: none !important;
 }
 .pattern-bg {
-    background: url("src/assets/images/template/pattern-bg.svg");
+    background: url("@/assets/images/template/pattern-bg.svg");
     background-size: cover;
 }
 .header-color {
@@ -31,7 +31,7 @@ a{
     border-color: #929C6B!important;
 }
 .ayt-spacer{
-    background: url("src/assets/images/template/spacer-bg.svg");
+    background: url("@/assets/images/template/spacer-bg.svg");
     background-size: revert;
 }
 
