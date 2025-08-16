@@ -6,6 +6,7 @@ import router from './router'
 import PrimeVue from 'primevue/config';
 import Lara from '@primeuix/themes/lara';
 import 'primeflex/primeflex.css'
+import './assets/css/fonts.css'
 import './assets/css/main.css'
 import './assets/css/base.scss'
 import './assets/theme/aura-skeleton.css'

@@ -44,10 +44,14 @@ export default {
         </router-link>
       </div>
       <div class="col-3 text-center">
-        <img src="@/assets/images/template/menu/menu-off.svg" class="menu-icon" />
-        <div>
-          <strong class="text-color-secondary font-13">تخفیف ها</strong>
-        </div>
+        <router-link :to="{name: 'discounts'}">
+          <img v-if="this.$route.name === 'discounts'" src="@/assets/images/template/menu/menu-off-active.svg" class="menu-icon" />
+          <img v-else src="@/assets/images/template/menu/menu-off.svg" class="menu-icon" />
+          <div>
+            <strong class="text-color-secondary font-13">تخفیف ها</strong>
+          </div>
+        </router-link>
+
       </div>
       <div class="col-3 text-center">
         <router-link :to="{name: 'about'}">

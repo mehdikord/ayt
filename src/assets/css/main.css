@@ -27,9 +27,16 @@ a{
 .ayt-border-light{
     border-color: #D7DEBD!important;
 }
+.ayt-border-dark{
+    border-color: #929C6B!important;
+}
 .ayt-spacer{
     background: url("src/assets/images/template/spacer-bg.svg");
     background-size: revert;
+}
+
+body{
+     font-family: 'Shoor', sans-serif!important;
 }
 
 
