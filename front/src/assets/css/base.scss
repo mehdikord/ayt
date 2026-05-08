@@ -1,0 +1,8 @@
+@use "sass:math";
+
+@for $i from 9 through 50 {
+  .font-#{$i} {
+    font-size: #{$i}px !important;
+    line-height: #{math.ceil($i * 1.4)}px !important;
+  }
+}
