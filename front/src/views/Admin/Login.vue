@@ -15,32 +15,57 @@ const form = reactive({
 
 const loading = ref(false)
 const errorMessage = ref('')
+const fieldErrors = reactive({
+  phone: '',
+  password: ''
+})
 
 const phoneRegex = /^09[0-9]{9}$/
 
 const submit = async () => {
   errorMessage.value = ''
+  fieldErrors.phone = ''
+  fieldErrors.password = ''
 
   if (!phoneRegex.test(form.phone.trim())) {
-    errorMessage.value = 'شماره موبایل باید در قالب 09xxxxxxxxx باشد.'
+    fieldErrors.phone = 'شماره موبایل باید در قالب 09xxxxxxxxx باشد.'
     return
   }
 
   if (!form.password || form.password.length < 6) {
-    errorMessage.value = 'رمز عبور باید حداقل 6 کاراکتر باشد.'
+    fieldErrors.password = 'رمز عبور باید حداقل 6 کاراکتر باشد.'
     return
   }
 
-  loading.value = true
-  await new Promise((resolve) => setTimeout(resolve, 600))
+  try {
+    loading.value = true
+    await adminStore.login({
+      phone: form.phone.trim(),
+      password: form.password
+    })
+    router.push(route.query.redirect || { name: 'admin-dashboard' })
+  } catch (error) {
+    if (error?.status === 422 && error?.errors) {
+      fieldErrors.phone = error.errors?.phone?.[0] || ''
+      fieldErrors.password = error.errors?.password?.[0] || ''
+      errorMessage.value = error.message
+      return
+    }
 
-  adminStore.login({
-    phone: form.phone.trim(),
-    name: 'مدیر سیستم AYT'
-  })
+    if (error?.status === 401) {
+      errorMessage.value = 'شماره موبایل یا رمز عبور نامعتبر است.'
+      return
+    }
 
-  loading.value = false
-  router.push(route.query.redirect || { name: 'admin-dashboard' })
+    if (error?.status === 403) {
+      errorMessage.value = 'حساب مدیر غیرفعال است یا دسترسی لازم را ندارد.'
+      return
+    }
+
+    errorMessage.value = error?.message || 'خطا در ورود. لطفا دوباره تلاش کنید.'
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
@@ -58,6 +83,7 @@ const submit = async () => {
           <div class="col-12">
             <label class="block mb-2 font-semibold">شماره موبایل</label>
             <InputText v-model="form.phone" class="w-full" placeholder="0912xxxxxxx" />
+            <small v-if="fieldErrors.phone" class="field-error">{{ fieldErrors.phone }}</small>
           </div>
           <div class="col-12">
             <label class="block mb-2 font-semibold">رمز عبور</label>
@@ -68,6 +94,7 @@ const submit = async () => {
               :feedback="false"
               toggleMask
             />
+            <small v-if="fieldErrors.password" class="field-error">{{ fieldErrors.password }}</small>
           </div>
           <div class="col-12">
             <div class="flex align-items-center gap-2">
@@ -107,5 +134,12 @@ const submit = async () => {
   border-radius: 20px;
   border: 1px solid #dbe4f0;
   box-shadow: 0 24px 50px rgba(15, 23, 42, 0.08);
+}
+
+.field-error {
+  color: #b91c1c;
+  font-size: 0.8rem;
+  margin-top: 0.35rem;
+  display: inline-block;
 }
 </style>

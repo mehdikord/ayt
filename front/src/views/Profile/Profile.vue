@@ -1,7 +1,30 @@
 <script>
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
 
 export default {
-  name: "Profile"
+  name: "Profile",
+  setup() {
+    const router = useRouter()
+    const userStore = useUserStore()
+
+    const profile = computed(() => userStore.session.profile)
+    const displayName = computed(() => profile.value?.name || 'دوست عزیز')
+    const membershipCode = computed(() => profile.value?.id ?? '---')
+
+    const logout = async () => {
+      await userStore.logout()
+      await router.push({ name: 'auth' })
+    }
+
+    return {
+      profile,
+      displayName,
+      membershipCode,
+      logout
+    }
+  }
 }
 </script>
 
@@ -15,10 +38,10 @@ export default {
       </div>
       <div class="col-8">
         <div>
-          <strong class="text-black-alpha-90 font-26">سلام مهدی عزیز !</strong>
+          <strong class="text-black-alpha-90 font-26">سلام {{ displayName }} !</strong>
         </div>
         <div class="mt-3">
-          <span class="ayt-text-dark font-18">کد اشتراک : </span><strong class="font-20 mr-2 text-black-alpha-90">254</strong>
+          <span class="ayt-text-dark font-18">کد اشتراک : </span><strong class="font-20 mr-2 text-black-alpha-90">{{ membershipCode }}</strong>
         </div>
       </div>
     </div>
@@ -70,7 +93,7 @@ export default {
     </div>
     <div class="logout-box">
       <div class="text-left">
-        <Button class="text-white" severity="danger" rounded>خروج</Button>
+        <Button class="text-white" severity="danger" rounded @click="logout">خروج</Button>
       </div>
     </div>
 

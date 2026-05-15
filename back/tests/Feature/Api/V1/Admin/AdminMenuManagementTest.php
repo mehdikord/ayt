@@ -4,6 +4,8 @@ namespace Tests\Feature\Api\V1\Admin;
 
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class AdminMenuManagementTest extends TestCase
@@ -99,5 +101,33 @@ class AdminMenuManagementTest extends TestCase
             'price' => 100,
             'discount_price' => 150,
         ], $h)->assertStatus(422);
+    }
+
+    public function test_admin_can_upload_and_remove_menu_item_image(): void
+    {
+        Storage::fake('public');
+        $h = $this->adminHeaders();
+
+        $categoryId = $this->postJson('/api/v1/admin/menu/categories', ['name' => 'آشپزخانه'], $h)
+            ->assertCreated()->json('data.id');
+
+        $itemId = $this->postJson('/api/v1/admin/menu/items', [
+            'category_id' => $categoryId,
+            'name' => 'ساندویچ',
+        ], $h)->assertCreated()->json('data.id');
+
+        $upload = $this->post("/api/v1/admin/menu/items/{$itemId}/image", [
+            'image' => UploadedFile::fake()->image('item.jpg'),
+        ], $h)->assertOk();
+
+        $imageUrl = $upload->json('data.image_url');
+        $this->assertNotNull($imageUrl);
+        $storagePath = str_replace('/storage/', '', parse_url($imageUrl, PHP_URL_PATH));
+        Storage::disk('public')->assertExists($storagePath);
+
+        $this->deleteJson("/api/v1/admin/menu/items/{$itemId}/image", [], $h)
+            ->assertOk()
+            ->assertJsonPath('data.image_url', null);
+        Storage::disk('public')->assertMissing($storagePath);
     }
 }

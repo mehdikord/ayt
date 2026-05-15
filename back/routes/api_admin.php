@@ -39,6 +39,8 @@ Route::prefix('v1/admin')->group(function () {
             Route::post('/menu/items/reorder', [AdminMenuItemController::class, 'reorder']);
             Route::get('/menu/items/{id}', [AdminMenuItemController::class, 'show'])->whereNumber('id');
             Route::patch('/menu/items/{id}', [AdminMenuItemController::class, 'update'])->whereNumber('id');
+            Route::post('/menu/items/{id}/image', [AdminMenuItemController::class, 'uploadImage'])->whereNumber('id');
+            Route::delete('/menu/items/{id}/image', [AdminMenuItemController::class, 'deleteImage'])->whereNumber('id');
             Route::delete('/menu/items/{id}', [AdminMenuItemController::class, 'destroy'])->whereNumber('id');
 
             Route::get('/menu/items/{itemId}/variants', [AdminMenuVariantController::class, 'index'])->whereNumber('itemId');

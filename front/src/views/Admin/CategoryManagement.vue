@@ -1,18 +1,15 @@
 ﻿<script setup>
-import { computed, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useAdminMenuStore } from '@/stores/adminMenu'
+import { useAdminFeedback } from '@/composables/useAdminFeedback'
 
 const menuStore = useAdminMenuStore()
 const { categoriesWithStats } = storeToRefs(menuStore)
+const feedback = useAdminFeedback()
 
-const uiState = ref('ready')
-const stateOptions = [
-  { label: 'Ready', value: 'ready' },
-  { label: 'Loading', value: 'loading' },
-  { label: 'Empty', value: 'empty' },
-  { label: 'Error', value: 'error' }
-]
+const includeInactive = ref(true)
+const errorMessage = ref('')
 
 const categoryForm = reactive({
   name: '',
@@ -33,6 +30,13 @@ const showCreateModal = ref(false)
 const showEditModal = ref(false)
 
 const hasCategories = computed(() => menuStore.categories.length > 0)
+const isLoading = computed(() => menuStore.state.isLoading)
+const hasError = computed(() => Boolean(menuStore.state.error))
+const canCreateCategory = computed(() => Boolean(categoryForm.name?.trim() && categoryForm.slug?.trim()))
+
+onMounted(async () => {
+  await menuStore.bootstrap({ includeInactive: includeInactive.value })
+})
 
 const openCreateModal = () => {
   Object.assign(categoryForm, {
@@ -44,10 +48,17 @@ const openCreateModal = () => {
   showCreateModal.value = true
 }
 
-const saveNew = () => {
+const saveNew = async () => {
   if (!categoryForm.name?.trim() || !categoryForm.slug?.trim()) return
-  menuStore.addCategory({ ...categoryForm })
-  showCreateModal.value = false
+  try {
+    errorMessage.value = ''
+    await menuStore.addCategory({ ...categoryForm })
+    showCreateModal.value = false
+    feedback.success('دسته‌بندی جدید ثبت شد.')
+  } catch (error) {
+    errorMessage.value = error.message
+    feedback.error(error.message)
+  }
 }
 
 const openEdit = (row) => {
@@ -59,23 +70,83 @@ const openEdit = (row) => {
   showEditModal.value = true
 }
 
-const saveEdit = () => {
+const saveEdit = async () => {
   if (!editingId.value) return
-  menuStore.updateCategory(editingId.value, { ...categoryEdit })
-  showEditModal.value = false
+  try {
+    errorMessage.value = ''
+    await menuStore.updateCategory(editingId.value, { ...categoryEdit })
+    showEditModal.value = false
+    feedback.success('دسته‌بندی به‌روز شد.')
+  } catch (error) {
+    errorMessage.value = error.message
+    feedback.error(error.message)
+  }
+}
+
+const toggleCategory = async (id) => {
+  try {
+    errorMessage.value = ''
+    await menuStore.toggleCategoryActive(id)
+  } catch (error) {
+    errorMessage.value = error.message
+  }
+}
+
+const requestRemoveCategory = (row) => {
+  feedback.confirmDelete({
+    message: `آیا دسته‌بندی «${row.name}» حذف شود؟ اگر آیتمی داشته باشد، سرور مانع این کار می‌شود.`,
+    accept: async () => {
+      try {
+        errorMessage.value = ''
+        await menuStore.removeCategory(row.id)
+        feedback.success('دسته‌بندی حذف شد.')
+      } catch (error) {
+        errorMessage.value = error.message
+        feedback.error(error.message)
+      }
+    }
+  })
+}
+
+const sortedCategoryIds = () =>
+  [...menuStore.categories]
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0))
+    .map((c) => c.id)
+
+const moveCategory = async (id, delta) => {
+  const ids = sortedCategoryIds()
+  const idx = ids.indexOf(id)
+  const j = idx + delta
+  if (idx < 0 || j < 0 || j >= ids.length) return
+  ;[ids[idx], ids[j]] = [ids[j], ids[idx]]
+  try {
+    errorMessage.value = ''
+    await menuStore.reorderCategories(ids)
+    feedback.success('ترتیب دسته‌ها ذخیره شد.')
+  } catch (error) {
+    errorMessage.value = error.message
+    feedback.error(error.message)
+  }
+}
+
+const reloadWithFilters = async () => {
+  await menuStore.bootstrap({ includeInactive: includeInactive.value })
 }
 </script>
 
 <template>
-  <div class="flex justify-content-end mb-3">
-    <SelectButton v-model="uiState" :options="stateOptions" optionLabel="label" optionValue="value" />
+  <div class="flex justify-content-between align-items-center mb-3">
+    <div class="flex align-items-center gap-2">
+      <Checkbox v-model="includeInactive" binary inputId="include-inactive-categories" @change="reloadWithFilters" />
+      <label for="include-inactive-categories" style="color: #000">نمایش غیرفعال ها</label>
+    </div>
   </div>
-  <div v-if="uiState === 'loading'" class="p-4 text-center">
+  <div v-if="isLoading" class="p-4 text-center">
     <ProgressSpinner style="width: 42px; height: 42px" strokeWidth="6" />
     <p class="text-color-secondary">در حال بارگذاری دسته بندی ها...</p>
   </div>
-  <Message v-else-if="uiState === 'error'" severity="error" :closable="false">
-    خطا در دریافت دسته بندی ها.
+  <Message v-else-if="hasError" severity="error" :closable="false">
+    {{ menuStore.state.error }}
   </Message>
   <div v-else class="grid">
     <div class="col-12">
@@ -87,7 +158,10 @@ const saveEdit = () => {
           </div>
         </template>
         <template #content>
-          <Message v-if="uiState === 'empty' || !hasCategories" severity="secondary" :closable="false" class="mb-3">
+          <Message v-if="errorMessage" severity="error" :closable="false" class="mb-3">
+            {{ errorMessage }}
+          </Message>
+          <Message v-if="!hasCategories" severity="secondary" :closable="false" class="mb-3">
             هنوز دسته بندی ای ثبت نشده است.
           </Message>
           <DataTable :value="categoriesWithStats" stripedRows responsiveLayout="scroll">
@@ -109,12 +183,20 @@ const saveEdit = () => {
                 <Tag :value="data.is_active ? 'فعال' : 'غیرفعال'" :severity="data.is_active ? 'success' : 'danger'" />
               </template>
             </Column>
+            <Column header="ترتیب">
+              <template #body="{ data }">
+                <div class="flex gap-1">
+                  <Button title="جابجایی به بالا" icon="pi pi-angle-up" size="small" text @click="moveCategory(data.id, -1)" />
+                  <Button title="جابجایی به پایین" icon="pi pi-angle-down" size="small" text @click="moveCategory(data.id, 1)" />
+                </div>
+              </template>
+            </Column>
             <Column header="اکشن">
               <template #body="{ data }">
                 <div class="flex gap-2 flex-wrap">
                   <Button icon="pi pi-pencil" size="small" text @click="openEdit(data)" />
-                  <Button icon="pi pi-power-off" size="small" text @click="menuStore.toggleCategoryActive(data.id)" />
-                  <Button icon="pi pi-trash" size="small" text severity="danger" @click="menuStore.removeCategory(data.id)" />
+                  <Button icon="pi pi-power-off" size="small" text @click="toggleCategory(data.id)" />
+                  <Button icon="pi pi-trash" size="small" text severity="danger" @click="requestRemoveCategory(data)" />
                 </div>
               </template>
             </Column>
@@ -146,7 +228,7 @@ const saveEdit = () => {
     <template #footer>
       <div class="flex gap-2 justify-content-end">
         <Button label="انصراف" severity="secondary" outlined @click="showCreateModal = false" />
-        <Button label="ثبت دسته بندی" icon="pi pi-check" @click="saveNew" />
+        <Button label="ثبت دسته بندی" icon="pi pi-check" :disabled="!canCreateCategory" @click="saveNew" />
       </div>
     </template>
   </Dialog>

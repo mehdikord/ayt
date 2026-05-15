@@ -2,10 +2,12 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAdminStore } from '@/stores/admin'
+import { useAdminFeedback } from '@/composables/useAdminFeedback'
 
 const route = useRoute()
 const router = useRouter()
 const adminStore = useAdminStore()
+const feedback = useAdminFeedback()
 
 const items = [
   { label: 'داشبورد', icon: 'pi pi-home', to: { name: 'admin-dashboard' } },
@@ -20,8 +22,15 @@ const items = [
 const isActive = (name) => computed(() => route.name === name)
 
 const logout = () => {
-  adminStore.logout()
-  router.push({ name: 'admin-login' })
+  feedback.confirmDelete({
+    header: 'خروج از حساب',
+    message: 'از پنل مدیریت خارج می‌شوید؟ نشست از این مرورگر پاک می‌شود.',
+    acceptLabel: 'خروج',
+    accept: async () => {
+      await adminStore.logout()
+      router.push({ name: 'admin-login' })
+    }
+  })
 }
 </script>
 

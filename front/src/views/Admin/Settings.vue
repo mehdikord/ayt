@@ -1,17 +1,34 @@
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useAdminStore } from '@/stores/admin'
+import { useAdminFeedback } from '@/composables/useAdminFeedback'
 
 const adminStore = useAdminStore()
+const feedback = useAdminFeedback()
 
 const profileForm = reactive({
-  name: adminStore.session.profile.name,
-  phone: adminStore.session.profile.phone,
-  image: adminStore.session.profile.image
+  name: adminStore.session.profile.name
 })
 
-const saveProfile = () => {
-  adminStore.updateProfile(profileForm)
+const isSaving = ref(false)
+const fieldErrors = reactive({ name: '' })
+
+const saveProfile = async () => {
+  fieldErrors.name = ''
+  isSaving.value = true
+  try {
+    await adminStore.patchProfileRemote({
+      name: profileForm.name?.trim()
+    })
+    feedback.success('نام مدیر با موفقیت ذخیره شد.')
+  } catch (error) {
+    if (error?.status === 422) {
+      fieldErrors.name = error?.errors?.name?.[0] || ''
+    }
+    feedback.error(error?.message || 'ذخیره پروفایل انجام نشد.')
+  } finally {
+    isSaving.value = false
+  }
 }
 </script>
 
@@ -22,15 +39,17 @@ const saveProfile = () => {
       <div class="grid">
         <div class="col-12 md:col-6">
           <label class="block mb-2 font-semibold">نام مدیر</label>
-          <InputText v-model="profileForm.name" class="w-full" />
+          <InputText v-model="profileForm.name" class="w-full" autocomplete="name" />
+          <small v-if="fieldErrors.name" class="text-red-500">{{ fieldErrors.name }}</small>
         </div>
         <div class="col-12 md:col-6">
           <label class="block mb-2 font-semibold">شماره موبایل</label>
-          <InputText v-model="profileForm.phone" class="w-full" />
+          <InputText :model-value="adminStore.session.profile.phone" class="w-full" disabled />
+          <small class="text-color-secondary">در حال حاضر API مدیر برای ویرایش شماره موبایل در این فرم در نظر گرفته نشده است.</small>
         </div>
         <div class="col-12 md:col-6">
-          <label class="block mb-2 font-semibold">آدرس تصویر پروفایل</label>
-          <InputText v-model="profileForm.image" class="w-full" />
+          <label class="block mb-2 font-semibold">تصویر</label>
+          <InputText :model-value="adminStore.session.profile.image || '-'" class="w-full" disabled />
         </div>
         <div class="col-12 md:col-6">
           <label class="block mb-2 font-semibold">وضعیت حساب</label>
@@ -43,7 +62,7 @@ const saveProfile = () => {
           </small>
         </div>
         <div class="col-12 flex justify-content-end">
-          <Button label="ذخیره تغییرات" icon="pi pi-save" @click="saveProfile" />
+          <Button label="ذخیره تغییرات" icon="pi pi-save" :loading="isSaving" @click="saveProfile" />
         </div>
       </div>
     </template>

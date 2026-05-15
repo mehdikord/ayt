@@ -1,10 +1,22 @@
 <script>
 import Template_Header from "@/components/Template/Template_Header.vue";
+import { computed } from 'vue'
+import { useUserStore } from '@/stores/user'
 
 export default {
   name : "App",
   components : {
     'template_header' : Template_Header,
+  },
+  setup() {
+    const userStore = useUserStore()
+    const profileRouteName = computed(() => (
+      userStore.canAccessProtectedRoutes ? 'profile' : 'auth'
+    ))
+
+    return {
+      profileRouteName
+    }
   }
 }
 </script>
@@ -36,8 +48,8 @@ export default {
           </router-link>
         </div>
         <div class="col-3 text-center">
-          <router-link :to="{name: 'auth'}">
-            <img v-if="this.$route.name === 'auth'" src="@/assets/images/template/menu/menu-profile-active.svg" class="menu-icon" />
+          <router-link :to="{name: profileRouteName}">
+            <img v-if="this.$route.name === 'auth' || this.$route.name === 'profile'" src="@/assets/images/template/menu/menu-profile-active.svg" class="menu-icon" />
             <img  v-else src="@/assets/images/template/menu/menu-profile.svg" class="menu-icon" />
             <div>
               <strong class="text-color-secondary font-13">پروفایل</strong>

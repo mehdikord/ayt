@@ -4,6 +4,10 @@ import Auth from "@/views/Auth/Auth.vue";
 import About from "@/views/Pages/About.vue";
 import Profile from "@/views/Profile/Profile.vue";
 import Discounts from "@/views/Pages/Discounts.vue";
+import { setAdminUnauthorizedHandler } from '@/services/admin/http'
+import { useAdminStore } from '@/stores/admin'
+import { setUserUnauthorizedHandler } from '@/services/user/http'
+import { useUserStore } from '@/stores/user'
 
 const routes = [
     {
@@ -24,12 +28,14 @@ const routes = [
     {
         path: '/profile',
         name: 'profile',
-        component: Profile
+        component: Profile,
+        meta: { requiresUser: true }
     },
     {
         path: '/discounts',
         name: 'discounts',
-        component: Discounts
+        component: Discounts,
+        meta: { requiresUser: true }
     },
     {
         path: '/admins/login',
@@ -94,31 +100,54 @@ const router = createRouter({
   routes,
 })
 
-const ADMIN_SESSION_KEY = 'ayt_admin_session'
-const isAdminLoggedIn = () => {
-    try {
-        const raw = localStorage.getItem(ADMIN_SESSION_KEY)
-        if (!raw) return false
-        return Boolean(JSON.parse(raw)?.isLoggedIn)
-    } catch (_error) {
-        return false
-    }
-}
-
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
     const needsAdmin = to.matched.some((record) => record.meta?.requiresAdmin)
     const isAdminPublic = to.matched.some((record) => record.meta?.adminPublic)
-    const loggedIn = isAdminLoggedIn()
+    const adminStore = useAdminStore()
+    const needsUser = to.matched.some((record) => record.meta?.requiresUser)
+    const userStore = useUserStore()
 
-    if (needsAdmin && !loggedIn) {
-        return { name: 'admin-login', query: { redirect: to.fullPath } }
+    if (needsAdmin) {
+        const hasSession = await adminStore.ensureSession()
+        if (!hasSession) {
+            return { name: 'admin-login', query: { redirect: to.fullPath } }
+        }
     }
 
-    if (isAdminPublic && loggedIn) {
+    if (needsUser) {
+        const hasSession = await userStore.ensureSession()
+        if (!hasSession) {
+            return { name: 'auth', query: { redirect: to.fullPath } }
+        }
+    }
+
+    if (isAdminPublic && adminStore.canAccessAdmin) {
         return { name: 'admin-dashboard' }
     }
 
+    if (to.name === 'auth' && userStore.canAccessProtectedRoutes) {
+        return { name: 'profile' }
+    }
+
     return true
+})
+
+setAdminUnauthorizedHandler(() => {
+    const adminStore = useAdminStore()
+    adminStore.clearSession()
+    const currentRouteName = router.currentRoute.value?.name
+    if (currentRouteName !== 'admin-login') {
+        router.push({ name: 'admin-login' })
+    }
+})
+
+setUserUnauthorizedHandler(() => {
+    const userStore = useUserStore()
+    userStore.clearSession()
+    const currentRouteName = router.currentRoute.value?.name
+    if (currentRouteName !== 'auth') {
+        router.push({ name: 'auth' })
+    }
 })
 
 export default router

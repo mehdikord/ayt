@@ -1,30 +1,26 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
+import { adminMenuApi } from '@/services/admin/endpoints/menuApi'
 
-let _nextId = 200
-
-function allocId() {
-  return _nextId++
+function translateMenuError(error, fallback) {
+  if (error?.status === 409) {
+    return 'این مورد وابستگی دارد و ابتدا باید وابستگی‌ها حذف شوند.'
+  }
+  if (error?.status === 422) {
+    return error?.message || 'داده های فرم معتبر نیست.'
+  }
+  return error?.message || fallback
 }
 
 export const useAdminMenuStore = defineStore('adminMenu', () => {
-  const categories = ref([
-    { id: 1, name: 'نوشیدنی گرم', slug: 'hot-drinks', sort_order: 1, is_active: true },
-    { id: 2, name: 'قهوه سرد', slug: 'cold-coffee', sort_order: 2, is_active: true },
-    { id: 3, name: 'دسر', slug: 'dessert', sort_order: 3, is_active: false }
-  ])
-
-  const items = ref([
-    { id: 11, category_id: 1, name: 'اسپرسو', slug: 'espresso', is_active: true },
-    { id: 12, category_id: 1, name: 'آمریکانو', slug: 'americano', is_active: true },
-    { id: 13, category_id: 2, name: 'فراپه', slug: 'frappe', is_active: true }
-  ])
-
-  const variants = ref([
-    { id: 21, menu_item_id: 11, name: '100% ربوستا', price: 120000, discount_price: 0, is_active: true },
-    { id: 22, menu_item_id: 11, name: '50/50', price: 150000, discount_price: 130000, is_active: true },
-    { id: 23, menu_item_id: 11, name: '100% عربیکا', price: 200000, discount_price: 0, is_active: true }
-  ])
+  const categories = ref([])
+  const items = ref([])
+  const variants = ref([])
+  const state = ref({
+    isLoading: false,
+    error: null,
+    lastUpdatedAt: null
+  })
 
   const categoryOptions = computed(() =>
     categories.value.map((c) => ({ label: c.name, value: c.id }))
@@ -49,68 +45,205 @@ export const useAdminMenuStore = defineStore('adminMenu', () => {
     }))
   )
 
-  function addCategory(payload) {
-    const id = allocId()
-    categories.value.unshift({ id, ...payload })
-    return id
+  async function loadCategories({ includeInactive = true } = {}) {
+    const data = await adminMenuApi.listCategories({ includeInactive })
+    categories.value = Array.isArray(data) ? data : []
   }
 
-  function updateCategory(id, payload) {
+  async function loadItems({ categoryId = null, includeInactive = true } = {}) {
+    const data = await adminMenuApi.listItems({ categoryId, includeInactive })
+    items.value = Array.isArray(data) ? data : []
+  }
+
+  async function loadVariantsForItems(itemList = []) {
+    const requests = itemList.map((item) => adminMenuApi.listVariants(item.id))
+    const responses = await Promise.all(requests)
+    variants.value = responses.flatMap((entry) => (Array.isArray(entry) ? entry : []))
+  }
+
+  async function bootstrap({ includeInactive = true } = {}) {
+    state.value.isLoading = true
+    state.value.error = null
+    try {
+      await loadCategories({ includeInactive })
+      await loadItems({ includeInactive })
+      await loadVariantsForItems(items.value)
+      state.value.lastUpdatedAt = new Date().toISOString()
+      return true
+    } catch (error) {
+      state.value.error = translateMenuError(error, 'خطا در بارگذاری اطلاعات منو.')
+      return false
+    } finally {
+      state.value.isLoading = false
+    }
+  }
+
+  async function addCategory(payload) {
+    try {
+      await adminMenuApi.createCategory(payload)
+      await bootstrap({ includeInactive: true })
+      return true
+    } catch (error) {
+      throw new Error(translateMenuError(error, 'ایجاد دسته بندی انجام نشد.'))
+    }
+  }
+
+  async function updateCategory(id, payload) {
+    try {
+      await adminMenuApi.updateCategory(id, payload)
+      await bootstrap({ includeInactive: true })
+      return true
+    } catch (error) {
+      throw new Error(translateMenuError(error, 'ویرایش دسته بندی انجام نشد.'))
+    }
+  }
+
+  async function removeCategory(id) {
+    try {
+      await adminMenuApi.deleteCategory(id)
+      await bootstrap({ includeInactive: true })
+      return true
+    } catch (error) {
+      throw new Error(translateMenuError(error, 'حذف دسته بندی انجام نشد.'))
+    }
+  }
+
+  async function toggleCategoryActive(id) {
     const row = categories.value.find((c) => c.id === id)
-    if (row) Object.assign(row, payload)
+    if (!row) return false
+    return updateCategory(id, { is_active: !row.is_active })
   }
 
-  function removeCategory(id) {
-    const itemIds = items.value.filter((i) => i.category_id === id).map((i) => i.id)
-    variants.value = variants.value.filter((v) => !itemIds.includes(v.menu_item_id))
-    items.value = items.value.filter((i) => i.category_id !== id)
-    categories.value = categories.value.filter((c) => c.id !== id)
+  async function addItem(payload) {
+    try {
+      await adminMenuApi.createItem(payload)
+      await bootstrap({ includeInactive: true })
+      return true
+    } catch (error) {
+      throw new Error(translateMenuError(error, 'ایجاد آیتم انجام نشد.'))
+    }
   }
 
-  function toggleCategoryActive(id) {
-    const row = categories.value.find((c) => c.id === id)
-    if (row) row.is_active = !row.is_active
+  async function updateItem(id, payload) {
+    try {
+      await adminMenuApi.updateItem(id, payload)
+      await bootstrap({ includeInactive: true })
+      return true
+    } catch (error) {
+      throw new Error(translateMenuError(error, 'ویرایش آیتم انجام نشد.'))
+    }
   }
 
-  function addItem(payload) {
-    const id = allocId()
-    items.value.unshift({ id, ...payload })
-    return id
+  async function removeItem(id) {
+    try {
+      await adminMenuApi.deleteItem(id)
+      await bootstrap({ includeInactive: true })
+      return true
+    } catch (error) {
+      throw new Error(translateMenuError(error, 'حذف آیتم انجام نشد.'))
+    }
   }
 
-  function updateItem(id, payload) {
+  async function toggleItemActive(id) {
     const row = items.value.find((i) => i.id === id)
-    if (row) Object.assign(row, payload)
+    if (!row) return false
+    return updateItem(id, { is_active: !row.is_active })
   }
 
-  function removeItem(id) {
-    variants.value = variants.value.filter((v) => v.menu_item_id !== id)
-    items.value = items.value.filter((i) => i.id !== id)
+  async function uploadItemImage(id, file) {
+    try {
+      await adminMenuApi.uploadItemImage(id, file)
+      await bootstrap({ includeInactive: true })
+      return true
+    } catch (error) {
+      throw new Error(translateMenuError(error, 'آپلود تصویر آیتم انجام نشد.'))
+    }
   }
 
-  function toggleItemActive(id) {
-    const row = items.value.find((i) => i.id === id)
-    if (row) row.is_active = !row.is_active
+  async function deleteItemImage(id) {
+    try {
+      await adminMenuApi.deleteItemImage(id)
+      await bootstrap({ includeInactive: true })
+      return true
+    } catch (error) {
+      throw new Error(translateMenuError(error, 'حذف تصویر آیتم انجام نشد.'))
+    }
   }
 
-  function addVariant(payload) {
-    const id = allocId()
-    variants.value.unshift({ id, ...payload })
-    return id
+  async function addVariant(payload) {
+    try {
+      await adminMenuApi.createVariant(payload.menu_item_id, {
+        name: payload.name,
+        price: payload.price,
+        discount_price: payload.discount_price || null,
+        is_active: payload.is_active
+      })
+      await bootstrap({ includeInactive: true })
+      return true
+    } catch (error) {
+      throw new Error(translateMenuError(error, 'ایجاد زیرمجموعه انجام نشد.'))
+    }
   }
 
-  function updateVariant(id, payload) {
+  async function updateVariant(id, payload) {
+    try {
+      await adminMenuApi.updateVariant(id, {
+        name: payload.name,
+        price: payload.price,
+        discount_price: payload.discount_price || null,
+        is_active: payload.is_active
+      })
+      await bootstrap({ includeInactive: true })
+      return true
+    } catch (error) {
+      throw new Error(translateMenuError(error, 'ویرایش زیرمجموعه انجام نشد.'))
+    }
+  }
+
+  async function removeVariant(id) {
+    try {
+      await adminMenuApi.deleteVariant(id)
+      await bootstrap({ includeInactive: true })
+      return true
+    } catch (error) {
+      throw new Error(translateMenuError(error, 'حذف زیرمجموعه انجام نشد.'))
+    }
+  }
+
+  async function toggleVariantActive(id) {
     const row = variants.value.find((v) => v.id === id)
-    if (row) Object.assign(row, payload)
+    if (!row) return false
+    return updateVariant(id, { ...row, is_active: !row.is_active })
   }
 
-  function removeVariant(id) {
-    variants.value = variants.value.filter((v) => v.id !== id)
+  async function reorderCategories(ids) {
+    try {
+      await adminMenuApi.reorderCategories(ids)
+      await bootstrap({ includeInactive: true })
+      return true
+    } catch (error) {
+      throw new Error(translateMenuError(error, 'به‌روزرسانی ترتیب دسته‌ها انجام نشد.'))
+    }
   }
 
-  function toggleVariantActive(id) {
-    const row = variants.value.find((v) => v.id === id)
-    if (row) row.is_active = !row.is_active
+  async function reorderItems(ids) {
+    try {
+      await adminMenuApi.reorderItems(ids)
+      await bootstrap({ includeInactive: true })
+      return true
+    } catch (error) {
+      throw new Error(translateMenuError(error, 'به‌روزرسانی ترتیب آیتم‌ها انجام نشد.'))
+    }
+  }
+
+  async function reorderVariants(menuItemId, ids) {
+    try {
+      await adminMenuApi.reorderVariants(menuItemId, ids)
+      await bootstrap({ includeInactive: true })
+      return true
+    } catch (error) {
+      throw new Error(translateMenuError(error, 'به‌روزرسانی ترتیب زیرمجموعه‌ها انجام نشد.'))
+    }
   }
 
   const itemOptions = computed(() =>
@@ -126,6 +259,8 @@ export const useAdminMenuStore = defineStore('adminMenu', () => {
     variants,
     categoryOptions,
     itemOptions,
+    state,
+    bootstrap,
     categoriesWithStats,
     itemsCountForCategory,
     variantsCountForCategory,
@@ -137,10 +272,14 @@ export const useAdminMenuStore = defineStore('adminMenu', () => {
     updateItem,
     removeItem,
     toggleItemActive,
+    uploadItemImage,
+    deleteItemImage,
     addVariant,
     updateVariant,
     removeVariant,
     toggleVariantActive,
-    allocId
+    reorderCategories,
+    reorderItems,
+    reorderVariants
   }
 })

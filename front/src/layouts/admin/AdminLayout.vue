@@ -3,6 +3,8 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { useAdminStore } from '@/stores/admin'
 import AdminSidebar from '@/components/Admin/AdminSidebar.vue'
+import Toast from 'primevue/toast'
+import ConfirmDialog from 'primevue/confirmdialog'
 
 const route = useRoute()
 const adminStore = useAdminStore()
@@ -12,6 +14,8 @@ const pageTitle = computed(() => route.meta?.title || 'پنل مدیریت')
 
 <template>
   <div class="admin-layout" dir="rtl">
+    <Toast position="bottom-center" />
+    <ConfirmDialog />
     <AdminSidebar />
     <div class="admin-main">
       <header class="admin-header">

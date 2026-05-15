@@ -1,7 +1,32 @@
 <script>
+import { onMounted, ref } from 'vue'
+import { userPagesApi } from '@/services/user/endpoints/pagesApi'
+
 export default{
   name: "About",
+  setup() {
+    const aboutTitle = ref('Ayt Group')
+    const aboutContent = ref('ما از سال ۹۸ با هدف تامین بهترین دانه‌های قهوه و فرهنگ قهوه‌نوشی، در گرگان شروع به کار کردیم.برای تجربه‌ی حرفه‌ای و تخصصی، علاوه بر همکاری با برندهای معتبر تصمیم به توسعه برند آی‌ت گرفتیم.')
 
+    onMounted(async () => {
+      try {
+        const page = await userPagesApi.about()
+        if (page?.title) {
+          aboutTitle.value = page.title
+        }
+        if (page?.content) {
+          aboutContent.value = page.content
+        }
+      } catch (_error) {
+        // Keep existing static copy as fallback if API is unavailable.
+      }
+    })
+
+    return {
+      aboutTitle,
+      aboutContent
+    }
+  }
 }
 </script>
 
@@ -11,12 +36,12 @@ export default{
       About
     </div>
     <div>
-      <strong class="text-black-alpha-90 font-48">Ayt Group</strong>
+      <strong class="text-black-alpha-90 font-48">{{ aboutTitle }}</strong>
     </div>
   </div>
   <div>
     <p class="text-black-alpha-90 text-justify p-4 font-18">
-      ما از سال ۹۸ با هدف تامین بهترین دانه‌های قهوه و فرهنگ قهوه‌نوشی، در گرگان شروع به کار کردیم.برای تجربه‌ی حرفه‌ای و تخصصی، علاوه بر همکاری با برندهای معتبر تصمیم به توسعه برند آی‌ت گرفتیم.
+      {{ aboutContent }}
     </p>
   </div>
   <div class="text-center">

@@ -9,6 +9,7 @@ use App\Support\AdminUniqueSlug;
 use App\Support\ApiResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class AdminMenuItemController extends Controller
 {
@@ -130,6 +131,7 @@ class AdminMenuItemController extends Controller
             );
         }
 
+        $this->deleteStoredItemImage($item->image_url);
         $item->delete();
 
         return ApiResponse::success(
@@ -174,6 +176,38 @@ class AdminMenuItemController extends Controller
         );
     }
 
+    public function uploadImage(Request $request, int $id)
+    {
+        $item = MenuItem::query()->findOrFail($id);
+
+        $validated = $request->validate([
+            'image' => ['required', 'image', 'max:4096'],
+        ]);
+
+        $this->deleteStoredItemImage($item->image_url);
+        $path = $validated['image']->store('menu', 'public');
+        $item->forceFill([
+            'image_url' => Storage::disk('public')->url($path),
+        ])->save();
+
+        return ApiResponse::success(
+            data: $this->serializeItem($item->fresh()),
+            message: 'Menu item image updated successfully.',
+        );
+    }
+
+    public function deleteImage(int $id)
+    {
+        $item = MenuItem::query()->findOrFail($id);
+        $this->deleteStoredItemImage($item->image_url);
+        $item->forceFill(['image_url' => null])->save();
+
+        return ApiResponse::success(
+            data: $this->serializeItem($item->fresh()),
+            message: 'Menu item image removed successfully.',
+        );
+    }
+
     private function serializeItem(MenuItem $i): array
     {
         return [
@@ -188,5 +222,23 @@ class AdminMenuItemController extends Controller
             'created_at' => $i->created_at?->toIso8601String(),
             'updated_at' => $i->updated_at?->toIso8601String(),
         ];
+    }
+
+    private function deleteStoredItemImage(?string $imageUrl): void
+    {
+        if (! $imageUrl || ! str_contains($imageUrl, '/storage/menu/')) {
+            return;
+        }
+
+        $relativePath = ltrim((string) parse_url($imageUrl, PHP_URL_PATH), '/');
+        $publicPrefix = 'storage/';
+        if (! str_starts_with($relativePath, $publicPrefix)) {
+            return;
+        }
+
+        $diskPath = substr($relativePath, strlen($publicPrefix));
+        if ($diskPath) {
+            Storage::disk('public')->delete($diskPath);
+        }
     }
 }

@@ -22,6 +22,7 @@ export default defineConfig(async () => {
 
   return {
     plugins,
+    envPrefix: ['VITE_', 'API_'],
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url))
