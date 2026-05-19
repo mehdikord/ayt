@@ -71,6 +71,7 @@ const itemIdsInSelectedCategory = computed(() => {
 const itemForm = reactive({
   name: '',
   slug: '',
+  description: '',
   category_id: null,
   is_active: true
 })
@@ -78,6 +79,7 @@ const itemForm = reactive({
 const itemEdit = reactive({
   name: '',
   slug: '',
+  description: '',
   category_id: null,
   is_active: true
 })
@@ -127,6 +129,8 @@ const showImageModal = ref(false)
 const imageUploading = ref(false)
 const imageItemId = ref(null)
 const imageFileInput = ref(null)
+const creatingItem = ref(false)
+const creatingVariant = ref(false)
 
 const currentImageItem = computed(() =>
   items.value.find((item) => Number(item.id) === Number(imageItemId.value)) ?? null
@@ -141,6 +145,7 @@ const openCreateItemModal = () => {
   Object.assign(itemForm, {
     name: '',
     slug: '',
+    description: '',
     category_id: normalizedCategoryOptions.value[0]?.value ?? null,
     is_active: true
   })
@@ -148,8 +153,10 @@ const openCreateItemModal = () => {
 }
 
 const saveItem = async () => {
+  if (creatingItem.value) return
   if (!itemForm.name?.trim() || !itemForm.slug?.trim() || itemForm.category_id == null) return
   try {
+    creatingItem.value = true
     errorMessage.value = ''
     await menuStore.addItem({ ...itemForm })
     showCreateItemModal.value = false
@@ -157,6 +164,8 @@ const saveItem = async () => {
   } catch (error) {
     errorMessage.value = error.message
     feedback.error(error.message)
+  } finally {
+    creatingItem.value = false
   }
 }
 
@@ -165,6 +174,7 @@ const openItemEdit = (row) => {
   Object.assign(itemEdit, {
     name: row.name,
     slug: row.slug,
+    description: row.description ?? '',
     category_id: row.category_id,
     is_active: row.is_active
   })
@@ -238,8 +248,10 @@ const openCreateVariantModal = () => {
 }
 
 const saveVariant = async () => {
+  if (creatingVariant.value) return
   if (!variantForm.name?.trim() || variantForm.menu_item_id == null || variantError.value) return
   try {
+    creatingVariant.value = true
     errorMessage.value = ''
     await menuStore.addVariant({ ...variantForm })
     showCreateVariantModal.value = false
@@ -247,6 +259,8 @@ const saveVariant = async () => {
   } catch (error) {
     errorMessage.value = error.message
     feedback.error(error.message)
+  } finally {
+    creatingVariant.value = false
   }
 }
 
@@ -624,6 +638,10 @@ const reloadWithFilters = async () => {
         <label class="block mb-2 font-semibold">اسلاگ</label>
         <InputText v-model="itemForm.slug" class="w-full" />
       </div>
+      <div class="col-12">
+        <label class="block mb-2 font-semibold">توضیحات کوتاه</label>
+        <Textarea v-model="itemForm.description" rows="3" class="w-full" autoResize />
+      </div>
       <div class="col-12 flex align-items-center gap-2">
         <Checkbox v-model="itemForm.is_active" binary inputId="item-active-new" />
         <label for="item-active-new">فعال</label>
@@ -631,8 +649,8 @@ const reloadWithFilters = async () => {
     </div>
     <template #footer>
       <div class="flex gap-2 justify-content-end">
-        <Button label="انصراف" severity="secondary" outlined @click="showCreateItemModal = false" />
-        <Button label="ثبت آیتم" icon="pi pi-check" @click="saveItem" />
+        <Button label="انصراف" severity="secondary" outlined :disabled="creatingItem" @click="showCreateItemModal = false" />
+        <Button label="ثبت آیتم" icon="pi pi-check" :loading="creatingItem" @click="saveItem" />
       </div>
     </template>
   </Dialog>
@@ -657,6 +675,10 @@ const reloadWithFilters = async () => {
       <div class="col-12">
         <label class="block mb-2 font-semibold">اسلاگ</label>
         <InputText v-model="itemEdit.slug" class="w-full" />
+      </div>
+      <div class="col-12">
+        <label class="block mb-2 font-semibold">توضیحات کوتاه</label>
+        <Textarea v-model="itemEdit.description" rows="3" class="w-full" autoResize />
       </div>
       <div class="col-12 flex align-items-center gap-2">
         <Checkbox v-model="itemEdit.is_active" binary inputId="item-active-edit" />
@@ -707,8 +729,14 @@ const reloadWithFilters = async () => {
     </div>
     <template #footer>
       <div class="flex gap-2 justify-content-end">
-        <Button label="انصراف" severity="secondary" outlined @click="showCreateVariantModal = false" />
-        <Button label="ثبت زیرمجموعه" icon="pi pi-check" :disabled="Boolean(variantError)" @click="saveVariant" />
+        <Button label="انصراف" severity="secondary" outlined :disabled="creatingVariant" @click="showCreateVariantModal = false" />
+        <Button
+          label="ثبت زیرمجموعه"
+          icon="pi pi-check"
+          :loading="creatingVariant"
+          :disabled="Boolean(variantError) || creatingVariant"
+          @click="saveVariant"
+        />
       </div>
     </template>
   </Dialog>
@@ -791,15 +819,17 @@ const reloadWithFilters = async () => {
           icon="pi pi-trash"
           severity="danger"
           text
+          :loading="imageUploading"
           :disabled="!currentImageUrl || imageUploading"
           @click="removeCurrentImage"
         />
         <div class="flex gap-2">
-          <Button label="بستن" severity="secondary" outlined @click="showImageModal = false" />
+          <Button label="بستن" severity="secondary" outlined :disabled="imageUploading" @click="showImageModal = false" />
           <Button
             label="ویرایش عکس"
             icon="pi pi-upload"
             :loading="imageUploading"
+            :disabled="imageUploading"
             @click="openImagePicker"
           />
         </div>

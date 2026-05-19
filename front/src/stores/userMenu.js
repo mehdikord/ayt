@@ -4,16 +4,43 @@ import { userMenuApi } from '@/services/user/endpoints/menuApi'
 export const useUserMenuStore = defineStore('userMenu', {
   state: () => ({
     categories: [],
-    items: [],
+    itemsByCategory: {},
+    /** null = همه دسته‌بندی‌ها */
     selectedCategoryId: null,
     isLoadingCategories: false,
     isLoadingItems: false,
     error: null
   }),
   getters: {
+    isContentLoading(state) {
+      return state.isLoadingCategories || state.isLoadingItems
+    },
+    isAllCategoriesMode(state) {
+      return state.selectedCategoryId === null
+    },
     activeCategoryName(state) {
       const active = state.categories.find((category) => category.id === state.selectedCategoryId)
       return active?.name || ''
+    },
+    displaySections(state) {
+      if (state.selectedCategoryId === null) {
+        return state.categories.map((category) => ({
+          category,
+          items: state.itemsByCategory[category.id] || []
+        }))
+      }
+
+      const category = state.categories.find((c) => c.id === state.selectedCategoryId)
+      if (!category) {
+        return []
+      }
+
+      return [
+        {
+          category,
+          items: state.itemsByCategory[state.selectedCategoryId] || []
+        }
+      ]
     }
   },
   actions: {
@@ -23,39 +50,84 @@ export const useUserMenuStore = defineStore('userMenu', {
       try {
         const categories = await userMenuApi.categories()
         this.categories = categories
-        const firstCategoryId = categories[0]?.id ?? null
-        if (!this.selectedCategoryId && firstCategoryId) {
-          this.selectedCategoryId = firstCategoryId
-        }
-        if (this.selectedCategoryId) {
-          await this.loadItems(this.selectedCategoryId)
-        } else {
-          this.items = []
+        if (this.selectedCategoryId === null) {
+          await this.loadAllItems()
+        } else if (this.selectedCategoryId) {
+          await this.ensureCategoryItems(this.selectedCategoryId)
         }
         return true
       } catch (error) {
         this.error = error
         this.categories = []
-        this.items = []
+        this.itemsByCategory = {}
         return false
       } finally {
         this.isLoadingCategories = false
       }
     },
-    async loadItems(categoryId) {
+
+    async selectAllCategories() {
+      this.selectedCategoryId = null
+      const hasAllItems = this.categories.every(
+        (category) => Array.isArray(this.itemsByCategory[category.id])
+      )
+      if (!hasAllItems) {
+        await this.loadAllItems()
+      }
+    },
+
+    async selectCategory(categoryId) {
       if (!categoryId) {
-        this.items = []
-        return
+        return this.selectAllCategories()
       }
 
       this.selectedCategoryId = categoryId
+      await this.ensureCategoryItems(categoryId)
+    },
+
+    async ensureCategoryItems(categoryId) {
+      if (Array.isArray(this.itemsByCategory[categoryId])) {
+        return
+      }
+
       this.isLoadingItems = true
       this.error = null
       try {
-        this.items = await userMenuApi.categoryItems(categoryId)
+        const items = await userMenuApi.categoryItems(categoryId)
+        this.itemsByCategory = {
+          ...this.itemsByCategory,
+          [categoryId]: items
+        }
       } catch (error) {
         this.error = error
-        this.items = []
+        this.itemsByCategory = {
+          ...this.itemsByCategory,
+          [categoryId]: []
+        }
+      } finally {
+        this.isLoadingItems = false
+      }
+    },
+
+    async loadAllItems() {
+      if (!this.categories.length) {
+        this.itemsByCategory = {}
+        return
+      }
+
+      this.isLoadingItems = true
+      this.error = null
+      try {
+        const results = await Promise.all(
+          this.categories.map(async (category) => {
+            const items = await userMenuApi.categoryItems(category.id)
+            return [category.id, items]
+          })
+        )
+        this.itemsByCategory = Object.fromEntries(results)
+      } catch (error) {
+        this.error = error
+        this.itemsByCategory = {}
       } finally {
         this.isLoadingItems = false
       }

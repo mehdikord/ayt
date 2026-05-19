@@ -37,6 +37,15 @@ class InstallerCommand extends Command
                 'is_active' => true,
             ]
         );
+        Admin::query()->updateOrCreate(
+            ['phone' => '09126198286'],
+            [
+                'name' => 'Administrator',
+                'image' => null,
+                'password_hash' => Hash::make('@ayt123987'),
+                'is_active' => true,
+            ]
+        );
 
         $this->info('Installer completed successfully.');
         return SymfonyCommand::SUCCESS;

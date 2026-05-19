@@ -2,6 +2,35 @@ import { defineStore } from 'pinia'
 import { userAuthApi } from '@/services/user/endpoints/authApi'
 
 const USER_SESSION_KEY = 'ayt_user_session'
+const AUTH_FLOW_KEY = 'ayt_auth_flow'
+
+const defaultAuthFlow = () => ({
+  step: 'mobile',
+  phone: '',
+  otpSessionId: null
+})
+
+const readAuthFlowFromStorage = () => {
+  try {
+    const raw = sessionStorage.getItem(AUTH_FLOW_KEY)
+    if (!raw) {
+      return defaultAuthFlow()
+    }
+
+    const parsed = JSON.parse(raw)
+    if (parsed?.step === 'otp' && parsed?.phone) {
+      return {
+        step: 'otp',
+        phone: parsed.phone,
+        otpSessionId: parsed.otpSessionId ?? null
+      }
+    }
+  } catch (_error) {
+    // Ignore invalid persisted auth flow.
+  }
+
+  return defaultAuthFlow()
+}
 
 const defaultProfile = {
   id: null,
@@ -35,6 +64,7 @@ const getPersistedSession = () => {
 export const useUserStore = defineStore('user', {
   state: () => ({
     session: getPersistedSession(),
+    authFlow: readAuthFlowFromStorage(),
     auth: {
       hydrated: false,
       isBootstrapping: false
@@ -72,6 +102,40 @@ export const useUserStore = defineStore('user', {
       this.auth.hydrated = false
       this.persistSession()
     },
+    persistAuthFlow() {
+      if (this.authFlow.step === 'otp' && this.authFlow.phone) {
+        sessionStorage.setItem(AUTH_FLOW_KEY, JSON.stringify(this.authFlow))
+        return
+      }
+
+      sessionStorage.removeItem(AUTH_FLOW_KEY)
+    },
+    setAuthFlowOtp({ phone, otpSessionId }) {
+      this.authFlow = {
+        step: 'otp',
+        phone,
+        otpSessionId: otpSessionId ?? null
+      }
+      this.persistAuthFlow()
+    },
+    resetAuthFlowToMobile() {
+      this.authFlow = {
+        step: 'mobile',
+        phone: this.authFlow.phone,
+        otpSessionId: null
+      }
+      sessionStorage.removeItem(AUTH_FLOW_KEY)
+    },
+    clearAuthFlow() {
+      this.authFlow = defaultAuthFlow()
+      sessionStorage.removeItem(AUTH_FLOW_KEY)
+    },
+    setAuthFlowPhone(phone) {
+      this.authFlow.phone = phone
+      if (this.authFlow.step === 'otp') {
+        this.persistAuthFlow()
+      }
+    },
     async requestOtp(payload) {
       return userAuthApi.requestOtp(payload)
     },
@@ -83,6 +147,7 @@ export const useUserStore = defineStore('user', {
         profile: session.user
       })
       this.auth.hydrated = true
+      this.clearAuthFlow()
       return session
     },
     async hydrateSession() {
@@ -124,6 +189,7 @@ export const useUserStore = defineStore('user', {
         // Session cleanup should happen regardless of API failures.
       } finally {
         this.clearSession()
+        this.clearAuthFlow()
       }
     }
   }

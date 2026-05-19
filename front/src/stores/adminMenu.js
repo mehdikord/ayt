@@ -61,6 +61,39 @@ export const useAdminMenuStore = defineStore('adminMenu', () => {
     variants.value = responses.flatMap((entry) => (Array.isArray(entry) ? entry : []))
   }
 
+  function upsertItem(item) {
+    if (!item?.id) return
+    const idx = items.value.findIndex((i) => i.id === item.id)
+    if (idx >= 0) {
+      items.value[idx] = item
+    } else {
+      items.value.push(item)
+    }
+    state.value.lastUpdatedAt = new Date().toISOString()
+  }
+
+  function upsertVariant(variant) {
+    if (!variant?.id) return
+    const idx = variants.value.findIndex((v) => v.id === variant.id)
+    if (idx >= 0) {
+      variants.value[idx] = variant
+    } else {
+      variants.value.push(variant)
+    }
+    state.value.lastUpdatedAt = new Date().toISOString()
+  }
+
+  function removeItemFromState(id) {
+    items.value = items.value.filter((i) => i.id !== id)
+    variants.value = variants.value.filter((v) => v.menu_item_id !== id)
+    state.value.lastUpdatedAt = new Date().toISOString()
+  }
+
+  function removeVariantFromState(id) {
+    variants.value = variants.value.filter((v) => v.id !== id)
+    state.value.lastUpdatedAt = new Date().toISOString()
+  }
+
   async function bootstrap({ includeInactive = true } = {}) {
     state.value.isLoading = true
     state.value.error = null
@@ -116,9 +149,9 @@ export const useAdminMenuStore = defineStore('adminMenu', () => {
 
   async function addItem(payload) {
     try {
-      await adminMenuApi.createItem(payload)
-      await bootstrap({ includeInactive: true })
-      return true
+      const created = await adminMenuApi.createItem(payload)
+      upsertItem(created)
+      return created
     } catch (error) {
       throw new Error(translateMenuError(error, 'ایجاد آیتم انجام نشد.'))
     }
@@ -137,7 +170,7 @@ export const useAdminMenuStore = defineStore('adminMenu', () => {
   async function removeItem(id) {
     try {
       await adminMenuApi.deleteItem(id)
-      await bootstrap({ includeInactive: true })
+      removeItemFromState(id)
       return true
     } catch (error) {
       throw new Error(translateMenuError(error, 'حذف آیتم انجام نشد.'))
@@ -152,9 +185,9 @@ export const useAdminMenuStore = defineStore('adminMenu', () => {
 
   async function uploadItemImage(id, file) {
     try {
-      await adminMenuApi.uploadItemImage(id, file)
-      await bootstrap({ includeInactive: true })
-      return true
+      const updated = await adminMenuApi.uploadItemImage(id, file)
+      upsertItem(updated)
+      return updated
     } catch (error) {
       throw new Error(translateMenuError(error, 'آپلود تصویر آیتم انجام نشد.'))
     }
@@ -162,9 +195,9 @@ export const useAdminMenuStore = defineStore('adminMenu', () => {
 
   async function deleteItemImage(id) {
     try {
-      await adminMenuApi.deleteItemImage(id)
-      await bootstrap({ includeInactive: true })
-      return true
+      const updated = await adminMenuApi.deleteItemImage(id)
+      upsertItem(updated)
+      return updated
     } catch (error) {
       throw new Error(translateMenuError(error, 'حذف تصویر آیتم انجام نشد.'))
     }
@@ -172,14 +205,14 @@ export const useAdminMenuStore = defineStore('adminMenu', () => {
 
   async function addVariant(payload) {
     try {
-      await adminMenuApi.createVariant(payload.menu_item_id, {
+      const created = await adminMenuApi.createVariant(payload.menu_item_id, {
         name: payload.name,
         price: payload.price,
         discount_price: payload.discount_price || null,
         is_active: payload.is_active
       })
-      await bootstrap({ includeInactive: true })
-      return true
+      upsertVariant(created)
+      return created
     } catch (error) {
       throw new Error(translateMenuError(error, 'ایجاد زیرمجموعه انجام نشد.'))
     }
@@ -203,7 +236,7 @@ export const useAdminMenuStore = defineStore('adminMenu', () => {
   async function removeVariant(id) {
     try {
       await adminMenuApi.deleteVariant(id)
-      await bootstrap({ includeInactive: true })
+      removeVariantFromState(id)
       return true
     } catch (error) {
       throw new Error(translateMenuError(error, 'حذف زیرمجموعه انجام نشد.'))

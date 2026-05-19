@@ -1,37 +1,72 @@
 <script>
+import { mapState, mapActions } from 'pinia'
 import { useUserStore } from '@/stores/user'
+import { toEnglishDigits } from '@/utils/digits'
 
 export default {
   name: 'Auth',
   data(){
     return {
-      phone: '',
       otpCode: '',
-      otpSessionId: null,
-      step: 'mobile',
       isLoading: false,
       errorMessage: ''
     }
   },
+  computed: {
+    ...mapState(useUserStore, ['authFlow']),
+    step() {
+      return this.authFlow.step
+    },
+    phone: {
+      get() {
+        return this.authFlow.phone
+      },
+      set(value) {
+        this.setAuthFlowPhone(value)
+      }
+    },
+    otpSessionId() {
+      return this.authFlow.otpSessionId
+    }
+  },
   methods: {
+    ...mapActions(useUserStore, [
+      'requestOtp',
+      'verifyOtp',
+      'setAuthFlowOtp',
+      'resetAuthFlowToMobile',
+      'setAuthFlowPhone'
+    ]),
+    editMobile() {
+      this.errorMessage = ''
+      this.otpCode = ''
+      this.resetAuthFlowToMobile()
+    },
     async submit() {
       this.errorMessage = ''
       const userStore = useUserStore()
       this.isLoading = true
 
       try {
+        const mobile = toEnglishDigits(this.phone).trim()
+        const otpCode = toEnglishDigits(this.otpCode).trim()
+
         if (this.step === 'mobile') {
+          this.setAuthFlowPhone(mobile)
           const response = await userStore.requestOtp({
-            mobile: this.phone
+            mobile
           })
-          this.otpSessionId = response?.otpSessionId || null
-          this.step = 'otp'
+          this.setAuthFlowOtp({
+            phone: mobile,
+            otpSessionId: response?.otpSessionId || null
+          })
           return
         }
 
+        this.otpCode = otpCode
         await userStore.verifyOtp({
-          mobile: this.phone,
-          otp_code: this.otpCode,
+          mobile,
+          otp_code: otpCode,
           otp_session_id: this.otpSessionId,
           device_name: 'mobile-web'
         })
@@ -48,10 +83,7 @@ export default {
         this.isLoading = false
       }
     }
-  },
-
-
-
+  }
 }
 </script>
 
@@ -96,7 +128,11 @@ export default {
         rounded
         @click="submit"
       />
-
+    </div>
+    <div v-if="step === 'otp'" class="text-center mt-3">
+      <button type="button" class="edit-mobile-link" @click="editMobile">
+        ویرایش شماره موبایل
+      </button>
     </div>
   </div>
 </div>
@@ -113,5 +149,14 @@ export default {
   padding-top: 80px;
   padding-bottom: 35px;
 }
-
+.edit-mobile-link {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: #929C6B;
+  text-decoration: underline;
+}
 </style>

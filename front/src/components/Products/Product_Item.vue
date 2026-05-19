@@ -19,7 +19,8 @@ export default {
       return this.product?.name || 'محصول'
     },
     description() {
-      return this.product?.description || 'توضیحی برای این محصول ثبت نشده است.'
+      const text = this.product?.description?.trim()
+      return text || '---'
     },
     imageUrl() {
       return this.product?.imageUrl || fallbackProductImage

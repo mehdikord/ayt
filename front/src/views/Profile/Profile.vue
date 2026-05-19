@@ -12,6 +12,7 @@ export default {
     const profile = computed(() => userStore.session.profile)
     const displayName = computed(() => profile.value?.name || 'دوست عزیز')
     const membershipCode = computed(() => profile.value?.id ?? '---')
+    const mobile = computed(() => profile.value?.mobile ?? '---')
 
     const logout = async () => {
       await userStore.logout()
@@ -20,6 +21,7 @@ export default {
 
     return {
       profile,
+      mobile,
       displayName,
       membershipCode,
       logout
@@ -41,7 +43,7 @@ export default {
           <strong class="text-black-alpha-90 font-26">سلام {{ displayName }} !</strong>
         </div>
         <div class="mt-3">
-          <span class="ayt-text-dark font-18">کد اشتراک : </span><strong class="font-20 mr-2 text-black-alpha-90">{{ membershipCode }}</strong>
+          <span class="ayt-text-dark font-18"> موبایل : </span><strong class="font-20 mr-2 text-black-alpha-90">{{ mobile }}</strong>
         </div>
       </div>
     </div>
@@ -102,9 +104,19 @@ export default {
 
 <style scoped>
 .profile{
-  background: url("@/assets/images/template/profile-bg.svg");
-  width: 100px;
-  height: 103px;
+  /* background: url("@/assets/images/template/profile-bg.svg"); */
+  background-color: #D7DEBD;
+  width: 110px;
+  height: 110px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+}
+.profile img{
+  width: 75%;
+  
+  object-fit: cover;
 }
 
 .logout-box{
