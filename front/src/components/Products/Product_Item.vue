@@ -144,7 +144,7 @@ export default {
 
 .product-box__image {
   display: block;
-  width: 100%;
+  width: 90%;
   height: 100%;
   max-width: 100%;
   max-height: 100%;
