@@ -125,8 +125,8 @@ router.beforeEach(async (to) => {
         return { name: 'admin-dashboard' }
     }
 
-    if (to.name === 'auth' && userStore.canAccessProtectedRoutes) {
-        return { name: 'profile' }
+    if (to.name === 'profile') {
+        return { name: 'auth' }
     }
 
     return true

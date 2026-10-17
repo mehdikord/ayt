@@ -41,9 +41,11 @@ export default {
     <div class="text-black-alpha-90 pt-3 pb-3">
       <div @click="prices_dialog = true" class="product-box">
         <div class="product-box__rating pr-3">
+          <!-- امتیاز — موقتاً غیرفعال
           <div class="ayt-bg-light ayt-text-dark text-center pt-1 product-box__rating-badge">
             <strong class="font-20">4.8</strong>
           </div>
+          -->
         </div>
         <div class="product-box__image-wrap">
           <img :src="imageUrl" alt="product" class="product-box__image" />
@@ -70,7 +72,9 @@ export default {
       </div>
       <div class="mt-2">
         <strong class="text-black-alpha-90 font-24">{{ title }}</strong>
-        <strong  class="ayt-text-dark  font-18 ayt-bg-light p-2" style="float: left ;border-radius: 50%">4.8</strong>
+        <!-- امتیاز — موقتاً غیرفعال
+        <strong class="ayt-text-dark font-18 ayt-bg-light p-2" style="float: left; border-radius: 50%">4.8</strong>
+        -->
       </div>
       <div class="mt-2 ayt-text-dark">
         {{ description }}
@@ -84,7 +88,7 @@ export default {
               </div>
               <div class="col text-left ">
                 <div class="mt-1">
-                  <strong class="text-black-alpha-90 font-16">{{ variant.finalPrice.toLocaleString('fa-IR') }}</strong><span class="text-black-alpha-70 mr-2 font-12">تومان</span>
+                  <strong class="text-black-alpha-90 font-18">{{ variant.finalPrice.toLocaleString('fa-IR') }}</strong><span class="text-black-alpha-70 mr-2 font-12">تومان</span>
                 </div>
               </div>
             </div>
@@ -123,6 +127,7 @@ export default {
 .product-box__rating {
   flex-shrink: 0;
   z-index: 1;
+  min-height: 40px;
 }
 
 .product-box__rating-badge {
@@ -132,13 +137,13 @@ export default {
 }
 
 .product-box__image-wrap {
-  flex: 1 1 0;
+  /* flex: 1 1 0; */
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
+  width: 94%;
   min-height: 88px;
-  padding: 0 0.5rem;
+  padding: 13px 0.5rem;
   margin-top: -0.15rem;
 }
 
@@ -146,7 +151,7 @@ export default {
   display: block;
   width: 90%;
   height: 100%;
-  max-width: 100%;
+  max-width: 92%;
   max-height: 100%;
   object-fit: contain;
   object-position: center;

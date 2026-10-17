@@ -1,162 +1,169 @@
 <script>
-import { mapState, mapActions } from 'pinia'
-import { useUserStore } from '@/stores/user'
-import { toEnglishDigits } from '@/utils/digits'
-
 export default {
-  name: 'Auth',
-  data(){
-    return {
-      otpCode: '',
-      isLoading: false,
-      errorMessage: ''
-    }
-  },
-  computed: {
-    ...mapState(useUserStore, ['authFlow']),
-    step() {
-      return this.authFlow.step
-    },
-    phone: {
-      get() {
-        return this.authFlow.phone
-      },
-      set(value) {
-        this.setAuthFlowPhone(value)
-      }
-    },
-    otpSessionId() {
-      return this.authFlow.otpSessionId
-    }
-  },
-  methods: {
-    ...mapActions(useUserStore, [
-      'requestOtp',
-      'verifyOtp',
-      'setAuthFlowOtp',
-      'resetAuthFlowToMobile',
-      'setAuthFlowPhone'
-    ]),
-    editMobile() {
-      this.errorMessage = ''
-      this.otpCode = ''
-      this.resetAuthFlowToMobile()
-    },
-    async submit() {
-      this.errorMessage = ''
-      const userStore = useUserStore()
-      this.isLoading = true
-
-      try {
-        const mobile = toEnglishDigits(this.phone).trim()
-        const otpCode = toEnglishDigits(this.otpCode).trim()
-
-        if (this.step === 'mobile') {
-          this.setAuthFlowPhone(mobile)
-          const response = await userStore.requestOtp({
-            mobile
-          })
-          this.setAuthFlowOtp({
-            phone: mobile,
-            otpSessionId: response?.otpSessionId || null
-          })
-          return
-        }
-
-        this.otpCode = otpCode
-        await userStore.verifyOtp({
-          mobile,
-          otp_code: otpCode,
-          otp_session_id: this.otpSessionId,
-          device_name: 'mobile-web'
-        })
-
-        const redirect = this.$route.query?.redirect
-        if (typeof redirect === 'string' && redirect.startsWith('/')) {
-          await this.$router.push(redirect)
-        } else {
-          await this.$router.push({ name: 'profile' })
-        }
-      } catch (error) {
-        this.errorMessage = error?.message || 'خطایی رخ داد. دوباره تلاش کنید.'
-      } finally {
-        this.isLoading = false
-      }
-    }
-  }
+  name: 'Auth'
 }
 </script>
 
 <template>
-<div>
   <div class="login-bg">
-    <div class="text-center logo-box">
-      <img src="@/assets/images/template/auth-logo.svg" alt="">
-    </div>
-    <div class="text-center text-black-alpha-90 mt-5 font-20">
-      <template v-if="step === 'mobile'">برای ورود، شماره تلفن خود را وارد کنید.</template>
-      <template v-else>کد تایید ارسال‌شده را وارد کنید.</template>
-    </div>
-    <div class="text-center mt-5">
-      <InputText
-        v-if="step === 'mobile'"
-        dir="ltr"
-        type="text"
-        size="large"
-        v-model="phone"
-        class="p-3"
-      />
-      <InputText
-        v-else
-        dir="ltr"
-        type="text"
-        size="large"
-        v-model="otpCode"
-        class="p-3"
-      />
-    </div>
-    <div v-if="errorMessage" class="text-center mt-3">
-      <small class="text-red-500">{{ errorMessage }}</small>
-    </div>
-    <div class="text-center mt-5">
-      <Button
-        :loading="isLoading"
-        :disabled="isLoading"
-        size="large"
-        :label="step === 'mobile' ? 'دریافت کد ورود' : 'ورود به حساب'"
-        class="ayt-bg-light ayt-border-light"
-        rounded
-        @click="submit"
-      />
-    </div>
-    <div v-if="step === 'otp'" class="text-center mt-3">
-      <button type="button" class="edit-mobile-link" @click="editMobile">
-        ویرایش شماره موبایل
-      </button>
+    <div class="coming-soon">
+      <div class="coming-soon__card">
+        <div class="coming-soon__visual">
+          <span class="coming-soon__glow" aria-hidden="true" />
+          <img
+            src="@/assets/images/template/auth-logo.svg"
+            alt=""
+            class="coming-soon__logo"
+            width="120"
+            height="120"
+          />
+        </div>
+
+        <div class="coming-soon__badge">به‌زودی</div>
+
+        <h1 class="coming-soon__title">این قسمت به زودی آماده میشه !</h1>
+
+        <p class="coming-soon__subtitle">
+          بخش پروفایل و ورود به حساب کاربری در حال آماده‌سازیه.
+          <br />
+          به‌زودی می‌تونی از امکانات اختصاصی آ‌ی‌ت کافه استفاده کنی.
+        </p>
+
+        <router-link :to="{ name: 'index' }" class="coming-soon__link">
+          <Button
+            label="بازگشت به منو"
+            class="ayt-bg-light ayt-border-light"
+            rounded
+            size="large"
+          />
+        </router-link>
+      </div>
     </div>
   </div>
-</div>
-
 </template>
 
 <style scoped>
 .login-bg {
-  height: 92vh;
+  min-height: 92vh;
   background: url("@/assets/images/template/login-bg.svg");
   background-size: cover;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.25rem 3rem;
 }
-.logo-box{
-  padding-top: 80px;
-  padding-bottom: 35px;
+
+.coming-soon {
+  width: 100%;
+  max-width: 360px;
+  animation: coming-soon-fade-in 0.45s ease-out;
 }
-.edit-mobile-link {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  font-family: inherit;
+
+.coming-soon__card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.1rem;
+  padding: 2.25rem 1.75rem 2rem;
+  border-radius: 1.75rem;
+  background: linear-gradient(160deg, #ffffff 0%, #f4f6ec 52%, #e9eddc 100%);
+  border: 1px solid rgba(146, 156, 107, 0.28);
+  box-shadow:
+    0 16px 48px rgba(146, 156, 107, 0.14),
+    0 4px 12px rgba(0, 0, 0, 0.05);
+  text-align: center;
+}
+
+.coming-soon__visual {
+  position: relative;
+  width: 130px;
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.coming-soon__glow {
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(215, 222, 189, 0.55) 0%, rgba(215, 222, 189, 0) 72%);
+  animation: coming-soon-pulse 2.4s ease-in-out infinite;
+}
+
+.coming-soon__logo {
+  position: relative;
+  z-index: 1;
+  animation: coming-soon-float 2.6s ease-in-out infinite;
+  filter: drop-shadow(0 6px 14px rgba(146, 156, 107, 0.22));
+}
+
+.coming-soon__badge {
+  padding: 0.35rem 1rem;
+  border-radius: 999px;
+  background-color: #929c6b;
+  color: #f6f7f2;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.coming-soon__title {
+  margin: 0;
+  color: #3d4430;
+  font-size: 1.35rem;
+  line-height: 1.7;
+  font-weight: 700;
+}
+
+.coming-soon__subtitle {
+  margin: 0;
+  color: #929c6b;
   font-size: 0.95rem;
-  color: #929C6B;
-  text-decoration: underline;
+  line-height: 1.85;
+}
+
+.coming-soon__link {
+  margin-top: 0.35rem;
+  width: 100%;
+}
+
+.coming-soon__link :deep(.p-button) {
+  width: 100%;
+  color: #3d4430;
+  font-weight: 700;
+}
+
+@keyframes coming-soon-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes coming-soon-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes coming-soon-pulse {
+  0%,
+  100% {
+    transform: scale(0.96);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
 }
 </style>
